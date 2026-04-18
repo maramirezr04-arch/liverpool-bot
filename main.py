@@ -102,7 +102,7 @@ def descargar_csv() -> str:
         time.sleep(5)
 
         log.info("Descargando archivo...")
-        with page.expect_download(timeout=60000) as dl_info:
+        with page.expect_download(timeout=180000) as dl_info:
             page.mouse.click(1275, 100)
             time.sleep(1)
 
