@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liverpool Bot - Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; padding: 1.5rem; }
+h1 { font-size: 18px; font-weight: 500; margin-bottom: 0.25rem; }
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-bottom: 1.5rem; }
+.metric { background: #ececec; border-radius: 8px; padding: 14px 16px; }
+.metric .label { font-size: 12px; color: #666; margin-bottom: 6px; }
+.metric .value { font-size: 22px; font-weight: 500; }
+.metric .sub { font-size: 12px; color: #888; margin-top: 4px; }
+.card { background: #fff; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+.card-title { font-size: 13px; font-weight: 500; color: #666; margin-bottom: 1rem; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 500; color: #666; padding: 6px 8px; border-bottom: 0.5px solid rgba(0,0,0,0.1); font-size: 12px; }
+td { padding: 7px 8px; border-bottom: 0.5px solid rgba(0,0,0,0.07); }
+tr:last-child td { border-bottom: none; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.ok  { background: #eaf3de; color: #3b6d11; }
+.err { background: #fcebeb; color: #a32d2d; }
+.bar-wrap { background: #e0e0e0; border-radius: 4px; height: 7px; overflow: hidden; flex: 1; }
+.bar { height: 7px; border-radius: 4px; background: #378ADD; }
+.controls { display: flex; gap: 10px; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap; }
+.controls label { font-size: 13px; color: #666; }
+select, button { font-size: 13px; padding: 6px 12px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; }
+button:hover { background: #f0f0f0; }
+.status-bar { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #666; margin-bottom: 1.5rem; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot-live { background: #639922; animation: pulse 2s infinite; }
+.dot-off  { background: #E24B4A; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+</style>
+</head>
+<body>
+
+<h1>Liverpool Bot — Monitor de ejecuciones</h1>
+
+<div class="status-bar">
+  <span class="dot dot-off" id="dot"></span>
+  <span id="status-txt">Cargando...</span>
+  <span style="margin-left:auto;color:#aaa;font-size:11px" id="ultima"></span>
+</div>
+
+<div class="controls">
+  <label>Mostrar ultimas:</label>
+  <select id="filtro" onchange="renderAll()">
+    <option value="5">5 ejecuciones</option>
+    <option value="10">10 ejecuciones</option>
+    <option value="20" selected>20 ejecuciones</option>
+    <option value="9999">Todas</option>
+  </select>
+  <button onclick="cargar()">Actualizar ahora</button>
+</div>
+
+<div class="grid4" id="cards"></div>
+
+<div class="grid2">
+  <div class="card">
+    <div class="card-title">Duracion por ejecucion</div>
+    <div style="position:relative;height:180px;"><canvas id="cT" role="img" aria-label="Duracion por ejecucion"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Remisiones vencidas por ejecucion</div>
+    <div style="position:relative;height:180px;"><canvas id="cV" role="img" aria-label="Vencidas por ejecucion"></canvas></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Historial de ejecuciones</div>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Fecha</th><th>Hora</th><th>Duracion</th><th>Remisiones</th><th>Vencidas</th><th>Estado</th></tr>
+    </thead>
+    <tbody id="tabla"></tbody>
+  </table>
+</div>
+
+<script>
+// ── CONFIGURACION ─────────────────────────────────────────────
+// ID del Google Sheet (Sheet 1 kpis)
+const SHEET_ID = "135lsymm5A67_ieYZLaKIfvPpkyqRWbUf9UV-mv3b7js";
+const URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:json&sheet=MONITOR";
+// ─────────────────────────────────────────────────────────────
+
+let todos = [];
+let chartT, chartV;
+
+function formatDur(seg) {
+  seg = Math.round(Number(seg) || 0);
+  const m = Math.floor(seg / 60);
+  const s = seg % 60;
+  if (m === 0) return s + 's';
+  return m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+}
+
+async function cargar() {
+  try {
+    const r   = await fetch(URL + '&t=' + Date.now());
+    const txt = await r.text();
+    // Google devuelve JSONP, hay que limpiar el wrapper
+    const json = JSON.parse(txt.replace(/^[^{]+/, '').replace(/[^}]+$/, ''));
+    const rows = json.table.rows || [];
+
+    todos = rows.map(row => ({
+      fecha:    row.c[0]?.v || '',
+      hora:     row.c[1]?.v || '',
+      duracion: Number(row.c[2]?.v) || 0,
+      total:    Number(row.c[3]?.v) || 0,
+      vencidas: Number(row.c[4]?.v) || 0,
+      exito:    (row.c[5]?.v || '').toLowerCase() === 'exitosa',
+    }));
+
+    document.getElementById('dot').className = 'dot dot-live';
+    document.getElementById('status-txt').textContent = 'Datos reales desde Google Sheets — actualiza cada 30 seg';
+    document.getElementById('ultima').textContent = 'Ultima actualizacion: ' + new Date().toLocaleTimeString('es-MX');
+    renderAll();
+  } catch(e) {
+    document.getElementById('dot').className = 'dot dot-off';
+    document.getElementById('status-txt').textContent = 'Error al cargar datos — verifica que la hoja MONITOR exista';
+    console.error(e);
+  }
+}
+
+function filtrados() {
+  const n = parseInt(document.getElementById('filtro').value);
+  return todos.slice(-n);
+}
+
+function promedio(arr, key) {
+  const vals = arr.filter(e => e.exito).map(e => e[key]);
+  if (!vals.length) return 0;
+  return Math.round(vals.reduce((a,b) => a+b, 0) / vals.length);
+}
+
+function renderCards(data) {
+  const exitosas = data.filter(e => e.exito).length;
+  const fallidas = data.filter(e => !e.exito).length;
+  const promDur  = promedio(data, 'duracion');
+  const promVenc = promedio(data, 'vencidas');
+  const ultima   = data[data.length - 1];
+  const tasa     = data.length ? Math.round(exitosas / data.length * 100) : 0;
+
+  document.getElementById('cards').innerHTML = `
+    <div class="metric">
+      <div class="label">Duracion promedio</div>
+      <div class="value">${formatDur(promDur)}</div>
+      <div class="sub">Ultima: ${ultima ? formatDur(ultima.duracion) : '—'}</div>
+    </div>
+    <div class="metric">
+      <div class="label">Vencidas promedio</div>
+      <div class="value">${promVenc}</div>
+      <div class="sub">Ultima: ${ultima ? ultima.vencidas : '—'}</div>
+    </div>
+    <div class="metric">
+      <div class="label">Tasa de exito</div>
+      <div class="value">${tasa}%</div>
+      <div class="sub">${exitosas} ok / ${fallidas} errores</div>
+    </div>
+    <div class="metric">
+      <div class="label">Total ejecuciones</div>
+      <div class="value">${data.length}</div>
+      <div class="sub">de ${todos.length} totales</div>
+    </div>
+  `;
+}
+
+function renderTabla(data) {
+  const tbody = document.getElementById('tabla');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;padding:1.5rem;">Sin datos — espera a que el bot corra al menos una vez</td></tr>';
+    return;
+  }
+  tbody.innerHTML = [...data].reverse().map((e, i) => `
+    <tr>
+      <td style="color:#888">${data.length - i}</td>
+      <td>${e.fecha}</td>
+      <td>${e.hora}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="min-width:52px">${formatDur(e.duracion)}</span>
+          <div class="bar-wrap"><div class="bar" style="width:${Math.min(100, Math.round(e.duracion / 180 * 100))}%"></div></div>
+        </div>
+      </td>
+      <td>${e.total}</td>
+      <td>${e.vencidas}</td>
+      <td><span class="badge ${e.exito ? 'ok' : 'err'}">${e.exito ? 'exitosa' : 'error'}</span></td>
+    </tr>
+  `).join('');
+}
+
+function renderCharts(data) {
+  const labels  = data.map((_, i) => '#' + (i + 1));
+  const tiempos = data.map(e => Math.round(e.duracion));
+  const venc    = data.map(e => e.vencidas);
+  const colors  = data.map(e => e.exito ? '#378ADD' : '#E24B4A');
+
+  if (chartT) chartT.destroy();
+  if (chartV) chartV.destroy();
+
+  chartT = new Chart(document.getElementById('cT'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Duracion', data: tiempos, backgroundColor: colors }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { font: {size:11}, callback: v => formatDur(v) } },
+        x: { ticks: { font: {size:11}, autoSkip: true, maxRotation: 0 } }
+      }
+    }
+  });
+
+  chartV = new Chart(document.getElementById('cV'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Vencidas', data: venc, borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.1)', fill: true, tension: 0.3, pointRadius: 3 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { font: {size:11} } },
+        x: { ticks: { font: {size:11}, autoSkip: true, maxRotation: 0 } }
+      }
+    }
+  });
+}
+
+function renderAll() {
+  const data = filtrados();
+  renderCards(data);
+  renderTabla(data);
+  renderCharts(data);
+}
+
+// Cargar al abrir y cada 30 segundos
+cargar();
+setInterval(cargar, 30000);
+</script>
+</body>
+</html>
