@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liverpool Bot — Documentacion</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a1a; }
+
+.header { background: #E8416C; color: #fff; padding: 2rem 2rem 1.5rem; }
+.header h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+.header p  { font-size: 13px; opacity: 0.85; }
+.header .badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px; font-size: 11px; margin-top: 8px; }
+
+.nav { display: flex; gap: 0; background: #fff; border-bottom: 0.5px solid rgba(0,0,0,0.1); overflow-x: auto; }
+.nav button { flex-shrink: 0; padding: 10px 16px; font-size: 13px; background: none; border: none; cursor: pointer; color: #666; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+.nav button.active { color: #E8416C; border-bottom-color: #E8416C; font-weight: 500; }
+.nav button:hover { background: #f5f4f0; }
+
+.content { padding: 1.5rem; max-width: 900px; margin: 0 auto; }
+.section { display: none; }
+.section.active { display: block; }
+
+.card { background: #fff; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.card-title { font-size: 14px; font-weight: 500; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 8px; }
+.card-title .icon { font-size: 16px; }
+.card p { font-size: 13px; color: #444; line-height: 1.6; margin-bottom: 0.5rem; }
+.card p:last-child { margin-bottom: 0; }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+
+.metric { background: #f0eeea; border-radius: 8px; padding: 1rem; text-align: center; }
+.metric .val { font-size: 24px; font-weight: 500; color: #E8416C; }
+.metric .lbl { font-size: 12px; color: #666; margin-top: 4px; }
+
+.step { display: flex; gap: 12px; margin-bottom: 1rem; }
+.step-num { width: 28px; height: 28px; border-radius: 50%; background: #E8416C; color: #fff; font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+.step-body { flex: 1; }
+.step-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.step-desc { font-size: 13px; color: #555; line-height: 1.6; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.badge-green  { background: #eaf3de; color: #3b6d11; }
+.badge-red    { background: #fcebeb; color: #a32d2d; }
+.badge-blue   { background: #e6f1fb; color: #185fa5; }
+.badge-amber  { background: #faeeda; color: #854f0b; }
+.badge-pink   { background: #fbeaf0; color: #993556; }
+.badge-gray   { background: #f1efe8; color: #5f5e5a; }
+
+.timeline { border-left: 2px solid #E8416C; padding-left: 1.5rem; margin: 0.5rem 0 0.5rem 0.5rem; }
+.tl-item { position: relative; margin-bottom: 1.25rem; }
+.tl-item:last-child { margin-bottom: 0; }
+.tl-dot { position: absolute; left: -1.85rem; top: 3px; width: 10px; height: 10px; border-radius: 50%; background: #E8416C; border: 2px solid #fff; }
+.tl-time { font-size: 12px; font-weight: 500; color: #E8416C; margin-bottom: 2px; }
+.tl-text { font-size: 13px; color: #444; line-height: 1.5; }
+
+.msg-preview { background: #f0eeea; border-radius: 8px; padding: 0.75rem 1rem; font-size: 12px; line-height: 1.6; color: #333; font-family: monospace; white-space: pre-wrap; word-break: break-word; }
+
+.flow-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.flow-box { background: #fff; border: 0.5px solid rgba(0,0,0,0.15); border-radius: 6px; padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+.flow-box.pink { background: #fbeaf0; border-color: #ED93B1; color: #72243E; }
+.flow-box.green { background: #eaf3de; border-color: #97C459; color: #27500A; }
+.flow-box.blue  { background: #e6f1fb; border-color: #85B7EB; color: #0C447C; }
+.flow-box.amber { background: #faeeda; border-color: #EF9F27; color: #633806; }
+.flow-arrow { color: #aaa; font-size: 14px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 8px 10px; font-weight: 500; color: #666; font-size: 12px; border-bottom: 0.5px solid rgba(0,0,0,0.1); background: #f8f7f4; }
+td { padding: 8px 10px; border-bottom: 0.5px solid rgba(0,0,0,0.06); color: #333; }
+tr:last-child td { border-bottom: none; }
+
+.divider { border: none; border-top: 0.5px solid rgba(0,0,0,0.08); margin: 1.25rem 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Liverpool Bot 456</h1>
+  <p>Sistema de automatizacion y notificaciones de remisiones</p>
+  <div class="badge">Horario: 10:00 AM — 9:30 PM</div>
+</div>
+
+<div class="nav">
+  <button class="active" onclick="show('resumen')">Resumen</button>
+  <button onclick="show('flujo')">Flujo</button>
+  <button onclick="show('descarga')">Descarga</button>
+  <button onclick="show('sheets')">Sheets</button>
+  <button onclick="show('mensajes')">Mensajes</button>
+  <button onclick="show('horarios')">Horarios</button>
+  <button onclick="show('archivos')">Archivos</button>
+</div>
+
+<div class="content">
+
+  <!-- RESUMEN -->
+  <div id="resumen" class="section active">
+    <div class="grid3" style="margin-top:1rem">
+      <div class="metric"><div class="val">15 min</div><div class="lbl">Frecuencia de ejecucion</div></div>
+      <div class="metric"><div class="val">30 min</div><div class="lbl">Mensajes a jefes</div></div>
+      <div class="metric"><div class="val">20 min</div><div class="lbl">Limite para remision vencida</div></div>
+      <div class="metric"><div class="val">10 AM</div><div class="lbl">Hora de inicio</div></div>
+      <div class="metric"><div class="val">9:30 PM</div><div class="lbl">Hora de cierre</div></div>
+      <div class="metric"><div class="val">19</div><div class="lbl">Jefes configurados</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">⚙️</span> Que hace el bot</div>
+      <p>Cada 15 minutos entra automaticamente al sistema OMS de Liverpool, descarga el reporte de remisiones del dia, actualiza Google Sheets, detecta remisiones vencidas y manda notificaciones al Chat. Todo sin intervencion manual.</p>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title"><span class="icon">✅</span> Funcionando</div>
+        <p><span class="badge badge-green">OK</span> Descarga automatica cada 15 min</p><br>
+        <p><span class="badge badge-green">OK</span> Google Sheets actualizado</p><br>
+        <p><span class="badge badge-green">OK</span> Mensajes al Chat "reporte"</p><br>
+        <p><span class="badge badge-green">OK</span> Mensajes a jefes cada 30 min</p><br>
+        <p><span class="badge badge-green">OK</span> Tiempos adaptativos</p><br>
+        <p><span class="badge badge-green">OK</span> Apertura y cierre diario</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">⏳</span> Pendiente IT</div>
+        <p><span class="badge badge-amber">Pendiente</span> @menciones reales en Chat</p><br>
+        <p><span class="badge badge-amber">Pendiente</span> Mensajes directos a jefes</p><br>
+        <p><span class="badge badge-amber">Pendiente</span> Mensajes directos a vendedores</p><br>
+        <br>
+        <p style="font-size:12px;color:#888">Se necesita que IT active la Google Chat API con permisos de mensajes directos para la cuenta de servicio.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLUJO -->
+  <div id="flujo" class="section">
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title"><span class="icon">🔄</span> Flujo completo cada 15 minutos</div>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Verificar horario</div>
+          <div class="step-desc">El bot revisa si esta dentro del horario 10:00 AM - 9:30 PM. Si esta fuera, se cierra sin hacer nada.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Cargar tiempos adaptativos</div>
+          <div class="step-desc">Lee el archivo tiempos.json con los tiempos de la ultima ejecucion exitosa para saber cuanto esperar en cada paso.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Abrir Chrome y descargar CSV</div>
+          <div class="step-desc">Abre el navegador en segundo plano, entra al OMS con usuario y contrasena, navega a INDICADORES, selecciona fechas y descarga el CSV. Borra el anterior para no llenar el disco.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Leer y procesar CSV</div>
+          <div class="step-desc">Cuenta remisiones por estatus. Detecta si cada una es de hoy o de ayer, cuantos minutos lleva, tipo de entrega, jefe y vendedor asignado.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Actualizar Google Sheets</div>
+          <div class="step-desc">Actualiza Sheet 1 (datos crudos), Sheet 2 (seguimiento con timestamp en AS2) y APP 2.0 (filtrada con colores y filtro por piso).</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Actualizar DIRECTORIO e HISTORIAL</div>
+          <div class="step-desc">Aprende que jefe atiende cada seccion. Si una remision no tiene jefe, lo busca en DIRECTORIO y luego en HISTORIAL.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <div class="step-title">Leer DESCANSOS</div>
+          <div class="step-desc">Si hoy algun jefe descansa, redirige sus notificaciones al sustituto configurado en la hoja DESCANSOS.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">8</div>
+        <div class="step-body">
+          <div class="step-title">Detectar remisiones vencidas</div>
+          <div class="step-desc">Busca todas las remisiones con mas de 20 minutos sin moverse con estatus Etiqueta Generada o Mercancia en Espera.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">9</div>
+        <div class="step-body">
+          <div class="step-title">Mensajes al Chat</div>
+          <div class="step-desc">Manda resumen de indicadores y vencidas al espacio "reporte". Cada 30 min manda mensajes individuales a cada jefe por piso.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">10</div>
+        <div class="step-body">
+          <div class="step-title">Guardar en MONITOR</div>
+          <div class="step-desc">Guarda el resultado en el Sheet personal de Gmail para el dashboard en tiempo real.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESCARGA -->
+  <div id="descarga" class="section">
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title"><span class="icon">📥</span> Como descarga el CSV</div>
+      <p>El bot usa Playwright para controlar Chrome en segundo plano (sin ventana visible). Usa coordenadas de mouse porque la pagina de Liverpool OMS esta hecha en Flutter y no tiene selectores HTML normales.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">⏱️</span> Tiempos adaptativos</div>
+      <p>Despues de cada descarga exitosa, guarda en <code style="background:#f0eeea;padding:2px 6px;border-radius:4px;font-size:12px">tiempos.json</code> cuanto tardo cada paso. La proxima vez usa esos tiempos + 30% de margen para saber cuanto esperar. Si la pagina cargo rapido, espera menos. Si tardo mucho, espera mas.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">⚠️</span> Cuando falla la descarga</div>
+      <p>Si el servidor de Liverpool tarda demasiado en generar el archivo, manda un mensaje al Chat del espacio "reporte" indicando que hay que ejecutarlo manualmente. Tambien aumenta los tiempos de espera para el siguiente intento.</p>
+      <br>
+      <p><strong>Para ejecutar manualmente:</strong> doble clic en <code style="background:#f0eeea;padding:2px 6px;border-radius:4px;font-size:12px">correr_ahora.bat</code></p>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🗑️</span> Limpieza automatica</div>
+      <p>Despues de descargar el nuevo CSV, borra automaticamente todos los anteriores. Siempre queda solo 1 archivo en la carpeta descargas para no llenar el disco.</p>
+    </div>
+  </div>
+
+  <!-- SHEETS -->
+  <div id="sheets" class="section">
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title"><span class="icon">📊</span> Sheet 1 — kpis</div>
+      <table>
+        <tr><th>Hoja</th><th>Contenido</th><th>Actualizacion</th></tr>
+        <tr><td>Hoja 1</td><td>Datos crudos del CSV</td><td>Cada 15 min</td></tr>
+        <tr><td>APP 2.0</td><td>Solo Etiqueta Generada + Mercancia en Espera con colores y filtro por piso</td><td>Cada 15 min</td></tr>
+        <tr><td>DIRECTORIO</td><td>148 secciones con jefes actualizados</td><td>Cada 15 min</td></tr>
+        <tr><td>HISTORIAL</td><td>Registro historico de jefes por seccion</td><td>Cada 15 min</td></tr>
+        <tr><td>DESCANSOS</td><td>Jefes de descanso y sus sustitutos</td><td>Manual (tu lo llenas)</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Sheet 2 — Seguimiento Surtido</div>
+      <p>Los datos se pegan desde la columna <strong>V fila 2</strong>. La celda <strong>AS2</strong> se actualiza con la fecha y hora exacta de la ultima actualizacion.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">📈</span> Sheet Monitor — Gmail personal</div>
+      <p>Cada ejecucion guarda en tu cuenta personal de Gmail (<code style="background:#f0eeea;padding:2px 6px;border-radius:4px;font-size:12px">antonyrmz420@gmail.com</code>) una fila con: fecha, hora, duracion, total de remisiones, vencidas y si fue exitosa o no. Estos datos alimentan el dashboard en tiempo real.</p>
+    </div>
+  </div>
+
+  <!-- MENSAJES -->
+  <div id="mensajes" class="section">
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title"><span class="icon">💬</span> Espacio "reporte" — cada 15 minutos</div>
+      <div class="msg-preview">📊 Indicadores Liverpool 456
+Actualizacion: 20/04/2026 10:30
+Periodo: 19/04/2026 -> 20/04/2026
+
+Mercancia en Espera: 173
+Etiquetas Generadas: 16
+Sin Asignar: 0
+Total Remisiones: 743
+
+Actualizacion completada exitosamente</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">⚠️</span> Espacio "reporte" — resumen vencidas (cada 15 min)</div>
+      <div class="msg-preview">📊 Resumen remisiones vencidas — 20/04/2026 10:30
+
+🔴 Total vencidas: 150
+👔 Jefes afectados: 12
+👤 Vendedores afectados: 68
+⚠️ Sin vendedor: 5</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">👔</span> Espacio jefes — por jefe cada 30 min (ordenados por piso)</div>
+      <div class="msg-preview">〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+👨‍💼 JEFE JOSE JACOB ALVARADO
+
+🛍️ Contamos con clientes en espera de su mercancia,
+favor de apoyarnos a atender todos los articulos
+dando prioridad a HD0D, HD1D, CC0D, CC1D y C&C Misma Tienda.
+
+📦 Tipos de entrega prioritarios:
+  🔸 HD0D - Mismo dia: 8
+  🔸 HD1D - Manana: 5
+
+⚠️ Aun tienes 3 articulos pendientes de ayer sin atender.
+
+📍 Secciones:
+  🏬 1er PISO
+    🔴 Seccion 201 Deportes — Vencidas: 5
+    🔴 Seccion 205 Ropa — Vencidas: 3 | ⚠️ Sin vendedor: 1
+
+🟢 Total remisiones: 20
+_Liverpool Bot 456 — 20/04/2026 10:30_
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🌅</span> Mensaje de apertura — 10:00 AM (solo una vez al dia)</div>
+      <div class="msg-preview">🌅 Buenos dias
+
+Iniciamos el dia de hoy con 189 clientes en espera
+de sus articulos. Jefes, contamos con su apoyo para
+trabajar lo antes posible las remisiones de ayer.
+
+📊 Desglose:
+🔴 Mercancia en Espera: 173
+  📅 De ayer: 45 | De hoy: 128
+🏷️ Etiquetas Generadas: 16
+  📅 De ayer: 8 | De hoy: 8
+
+⚠️ Jefes con pendientes de ayer:
+  👨‍💼 JEFE JOSE JACOB — 8 pendientes
+    📍 Seccion 201 Deportes | Seccion 205 Ropa
+  👩‍💼 JEFA BRENDA BRIONES — 5 pendientes
+    📍 Seccion 466 Ninas
+
+_Liverpool Bot 456 — 20/04/2026 10:00_</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🌙</span> Mensaje de cierre — 9:30 PM</div>
+      <div class="msg-preview">🌙 Buenas noches
+
+Terminamos el dia de hoy con 45 clientes
+aun en espera de sus articulos.
+
+📊 Resumen de cierre:
+🔴 Mercancia en Espera: 32
+🏷️ Etiquetas Generadas: 13
+
+⚠️ Al cierre contamos con:
+  👨‍💼 JEFE JOSE JACOB — 8 pendientes
+    📍 Seccion 201 Deportes — 3h 20min
+    📍 Seccion 205 Ropa — 1h 45min
+  👩‍💼 JEFA BRENDA BRIONES — 5 pendientes
+    📍 Seccion 466 Ninas — 2h 10min
+
+_Liverpool Bot 456 — 20/04/2026 21:30_</div>
+    </div>
+  </div>
+
+  <!-- HORARIOS -->
+  <div id="horarios" class="section">
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title"><span class="icon">🕐</span> Programacion del dia</div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">10:00 AM — Apertura</div>
+          <div class="tl-text">Mensaje de buenos dias con total de remisiones, desglose de ayer vs hoy y jefes con pendientes de ayer. Solo se manda una vez al dia.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">Cada 15 min — Actualizacion</div>
+          <div class="tl-text">Descarga CSV, actualiza Sheets, manda resumen de indicadores y vencidas al espacio "reporte".</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">Cada 30 min — Mensajes a jefes</div>
+          <div class="tl-text">Manda un mensaje por cada jefe al espacio grupal, ordenados por piso (Planta Baja → 1er → 2do → 3er). Incluye tipos de entrega, secciones y si tienen pendientes de ayer.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">9:30 PM — Cierre</div>
+          <div class="tl-text">Mensaje de buenas noches con total de remisiones activas al cierre, jefes con pendientes y tiempo de espera por seccion.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">Despues de 9:30 PM — Pausa</div>
+          <div class="tl-text">Aunque la tarea programada sigue llamando al bot cada 15 min, el bot detecta que esta fuera de horario y se cierra sin hacer nada hasta las 10 AM del dia siguiente.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">😴</span> Hoja DESCANSOS</div>
+      <p>Cuando un jefe descansa, llena la hoja DESCANSOS en el Sheet 1 con:</p><br>
+      <table>
+        <tr><th>A — Fecha</th><th>B — Seccion</th><th>C — Jefe que descansa</th><th>D — Jefe que cubre</th></tr>
+        <tr><td>20/04/2026</td><td>201</td><td>Auto (formula)</td><td>BRENDA (nombre parcial)</td></tr>
+        <tr><td>20/04/2026</td><td>205</td><td>Auto (formula)</td><td>ISRAEL (nombre parcial)</td></tr>
+      </table>
+      <br>
+      <p style="font-size:12px;color:#888">La columna C se llena automaticamente con la formula VLOOKUP. En la columna D puedes poner solo el primer nombre o apellido — el bot lo busca completo en el DIRECTORIO.</p>
+    </div>
+  </div>
+
+  <!-- ARCHIVOS -->
+  <div id="archivos" class="section">
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title"><span class="icon">📁</span> Archivos del proyecto</div>
+      <table>
+        <tr><th>Archivo</th><th>Para que sirve</th><th>Editable</th></tr>
+        <tr><td><code>main.py</code></td><td>El bot principal — toda la logica</td><td><span class="badge badge-amber">Requiere programador</span></td></tr>
+        <tr><td><code>config.py</code></td><td>Configuracion — credenciales, IDs de Sheets</td><td><span class="badge badge-amber">Requiere programador</span></td></tr>
+        <tr><td><code>actualizar_directorio.py</code></td><td>Modulo que actualiza DIRECTORIO e HISTORIAL</td><td><span class="badge badge-amber">Requiere programador</span></td></tr>
+        <tr><td><code>instalar.bat</code></td><td>Instalar el bot en una PC nueva</td><td><span class="badge badge-gray">No editar</span></td></tr>
+        <tr><td><code>desinstalar.bat</code></td><td>Desinstalar el bot y borrar todo</td><td><span class="badge badge-gray">No editar</span></td></tr>
+        <tr><td><code>correr_ahora.bat</code></td><td>Ejecutar manualmente sin afectar la tarea programada</td><td><span class="badge badge-gray">No editar</span></td></tr>
+        <tr><td><code>dashboard.html</code></td><td>Monitor en tiempo real (GitHub Pages)</td><td><span class="badge badge-amber">Requiere programador</span></td></tr>
+        <tr><td><code>credentials.json</code></td><td>Credenciales de Google — NO compartir</td><td><span class="badge badge-red">No compartir</span></td></tr>
+        <tr><td><code>tiempos.json</code></td><td>Tiempos adaptativos aprendidos — se genera solo</td><td><span class="badge badge-green">Automatico</span></td></tr>
+        <tr><td><code>contador_jefes.json</code></td><td>Contador para mensajes cada 30 min — se genera solo</td><td><span class="badge badge-green">Automatico</span></td></tr>
+        <tr><td><code>apertura.json</code></td><td>Registro de si ya se mando el mensaje de apertura hoy</td><td><span class="badge badge-green">Automatico</span></td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">💻</span> Comandos utiles</div>
+      <table>
+        <tr><th>Comando</th><th>Para que</th><th>Necesita admin</th></tr>
+        <tr><td><code>python main.py</code></td><td>Ejecutar manualmente en VS Code</td><td>No</td></tr>
+        <tr><td><code>schtasks /query /tn "Liverpool Bot" /fo LIST</code></td><td>Ver estado de la tarea</td><td>No</td></tr>
+        <tr><td><code>schtasks /run /tn "Liverpool Bot"</code></td><td>Ejecutar la tarea ahora</td><td>No</td></tr>
+        <tr><td><code>taskkill /f /im python.exe</code></td><td>Detener si esta corriendo</td><td>No</td></tr>
+        <tr><td><code>schtasks /change /tn "Liverpool Bot" /disable</code></td><td>Desactivar temporalmente</td><td>Si</td></tr>
+        <tr><td><code>schtasks /change /tn "Liverpool Bot" /enable</code></td><td>Reactivar</td><td>Si</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🌐</span> Links importantes</div>
+      <table>
+        <tr><th>Recurso</th><th>URL</th></tr>
+        <tr><td>Dashboard en tiempo real</td><td><a href="https://maramirezr04-arch.github.io/liverpool-bot/dashboard.html" style="color:#185fa5;font-size:12px">maramirezr04-arch.github.io/liverpool-bot/dashboard.html</a></td></tr>
+        <tr><td>Sheet 1 (kpis)</td><td><a href="https://docs.google.com/spreadsheets/d/1ln87X03CxFNTGiU125ACn7BSBoqidPZwU7GPp79IkUM" style="color:#185fa5;font-size:12px">Abrir Sheet kpis</a></td></tr>
+        <tr><td>Sheet 2 (Seguimiento)</td><td><a href="https://docs.google.com/spreadsheets/d/1baVeWCA7-fhTHVUnPgd1_67kjJQJchwwvT64K5t0OJs" style="color:#185fa5;font-size:12px">Abrir Seguimiento Surtido</a></td></tr>
+        <tr><td>Monitor (Gmail personal)</td><td><a href="https://docs.google.com/spreadsheets/d/135lsymm5A67_ieYZLaKIfvPpkyqRWbUf9UV-mv3b7js" style="color:#185fa5;font-size:12px">Abrir Liverpool Bot Monitor</a></td></tr>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
