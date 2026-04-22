@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liverpool Bot 456 — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a1a; }
+.header { background: #E8416C; color: #fff; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.header h1 { font-size: 17px; font-weight: 500; }
+.header .sub { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.dot-live { background: #a8f0c6; animation: pulse 2s infinite; }
+.dot-off  { background: #ffb3b3; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.status-pill { display: flex; align-items: center; font-size: 12px; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; }
+
+.nav { display: flex; background: #fff; border-bottom: 0.5px solid rgba(0,0,0,0.08); overflow-x: auto; }
+.nav button { flex-shrink: 0; padding: 10px 16px; font-size: 13px; background: none; border: none; cursor: pointer; color: #666; border-bottom: 2px solid transparent; white-space: nowrap; }
+.nav button.active { color: #E8416C; border-bottom-color: #E8416C; font-weight: 500; }
+.nav button:hover { background: #f5f4f0; }
+
+.content { padding: 1.25rem; max-width: 960px; margin: 0 auto; }
+
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 1.25rem; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-bottom: 1.25rem; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 1.25rem; }
+
+.metric { background: #ececea; border-radius: 8px; padding: 12px 14px; }
+.metric .lbl { font-size: 11px; color: #666; margin-bottom: 5px; }
+.metric .val { font-size: 20px; font-weight: 500; }
+.metric .sub { font-size: 11px; color: #888; margin-top: 3px; }
+
+.card { background: #fff; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+.card-title { font-size: 13px; font-weight: 500; color: #555; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 500; color: #666; padding: 6px 8px; border-bottom: 0.5px solid rgba(0,0,0,0.1); font-size: 12px; background: #faf9f7; }
+td { padding: 7px 8px; border-bottom: 0.5px solid rgba(0,0,0,0.06); }
+tr:last-child td { border-bottom: none; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.ok    { background: #eaf3de; color: #3b6d11; }
+.err   { background: #fcebeb; color: #a32d2d; }
+.warn  { background: #faeeda; color: #854f0b; }
+.info  { background: #e6f1fb; color: #185fa5; }
+.pink  { background: #fbeaf0; color: #993556; }
+
+.bar-wrap { background: #e0e0e0; border-radius: 4px; height: 6px; overflow: hidden; flex: 1; }
+.bar { height: 6px; border-radius: 4px; background: #E8416C; }
+
+.controls { display: flex; gap: 10px; margin-bottom: 1.25rem; align-items: center; flex-wrap: wrap; }
+.controls label { font-size: 13px; color: #666; }
+select, button { font-size: 13px; padding: 6px 12px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; }
+button:hover { background: #f0f0f0; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+.timeline { border-left: 2px solid #E8416C; padding-left: 1.25rem; margin: 0.5rem 0 0.5rem 0.5rem; }
+.tl-item { position: relative; margin-bottom: 1rem; }
+.tl-dot  { position: absolute; left: -1.6rem; top: 3px; width: 9px; height: 9px; border-radius: 50%; background: #E8416C; border: 2px solid #f5f4f0; }
+.tl-time { font-size: 12px; font-weight: 500; color: #E8416C; }
+.tl-text { font-size: 13px; color: #444; line-height: 1.5; margin-top: 2px; }
+
+.msg-box { background: #f0eeea; border-radius: 8px; padding: 0.75rem 1rem; font-size: 12px; line-height: 1.7; color: #333; font-family: monospace; white-space: pre-wrap; word-break: break-word; margin-top: 8px; }
+
+.chip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: #f0eeea; color: #555; margin: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Liverpool Bot 456</h1>
+    <div class="sub">Sistema de automatizacion de remisiones</div>
+  </div>
+  <div class="status-pill">
+    <span class="dot dot-off" id="dot"></span>
+    <span id="status-txt">Cargando...</span>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="active" onclick="showTab('monitor', this)">Monitor</button>
+  <button onclick="showTab('como', this)">Como funciona</button>
+  <button onclick="showTab('mensajes', this)">Mensajes</button>
+  <button onclick="showTab('horarios', this)">Horarios</button>
+</div>
+
+<div class="content">
+
+  <!-- MONITOR -->
+  <div id="tab-monitor" class="section active" style="margin-top:1rem">
+    <div class="controls">
+      <label>Mostrar ultimas:</label>
+      <select id="filtro" onchange="renderAll()">
+        <option value="5">5 ejecuciones</option>
+        <option value="10">10 ejecuciones</option>
+        <option value="20" selected>20 ejecuciones</option>
+        <option value="9999">Todas</option>
+      </select>
+      <button onclick="cargar()">Actualizar</button>
+      <span style="font-size:12px;color:#aaa;margin-left:auto" id="ultima"></span>
+    </div>
+
+    <div class="grid4" id="cards"></div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Duracion por ejecucion</div>
+        <div style="position:relative;height:160px"><canvas id="cT"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Remisiones vencidas por ejecucion</div>
+        <div style="position:relative;height:160px"><canvas id="cV"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Historial de ejecuciones</div>
+      <table>
+        <thead><tr><th>#</th><th>Fecha</th><th>Hora</th><th>Duracion</th><th>Remisiones</th><th>Vencidas</th><th>Estado</th></tr></thead>
+        <tbody id="tabla"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- COMO FUNCIONA -->
+  <div id="tab-como" class="section" style="margin-top:1rem">
+    <div class="grid3">
+      <div class="metric"><div class="lbl">Frecuencia</div><div class="val">15 min</div><div class="sub">Ejecucion automatica</div></div>
+      <div class="metric"><div class="lbl">Navegadores paralelos</div><div class="val">3</div><div class="sub">El mas rapido gana</div></div>
+      <div class="metric"><div class="lbl">Limite vencida</div><div class="val">+20 min</div><div class="sub">Sin moverse</div></div>
+      <div class="metric"><div class="lbl">Horario</div><div class="val">10 AM</div><div class="sub">Hasta 9:30 PM</div></div>
+      <div class="metric"><div class="lbl">Mensajes jefes</div><div class="val">4</div><div class="sub">Uno por piso</div></div>
+      <div class="metric"><div class="lbl">Jefes configurados</div><div class="val">19</div><div class="sub">Tienda 456</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔄 Flujo cada 15 minutos</div>
+      <div style="font-size:13px;line-height:1.8;color:#444">
+        <b>1.</b> Verifica que este dentro del horario (10 AM - 9:30 PM)<br>
+        <b>2.</b> Abre 3 navegadores Chrome en paralelo — el primero en descargar gana, los otros se cancelan<br>
+        <b>3.</b> Entra al OMS de Liverpool con usuario y contrasena, navega a INDICADORES y descarga el CSV<br>
+        <b>4.</b> Lee el CSV (928+ filas), limpia comillas, convierte fechas para Looker Studio<br>
+        <b>5.</b> Actualiza Sheet 1 (datos crudos), Sheet 2 (seguimiento) y APP 2.0 (filtrada con colores)<br>
+        <b>6.</b> Lee el DIRECTORIO (columna F = ubicacion por piso) e HISTORIAL para asignar jefes<br>
+        <b>7.</b> Lee la hoja DESCANSOS — si un jefe descansa redirige sus secciones al sustituto<br>
+        <b>8.</b> Detecta remisiones con +20 min sin moverse<br>
+        <b>9.</b> Manda mensajes al Chat segun el horario<br>
+        <b>10.</b> Guarda el resultado en el Sheet Monitor para este dashboard<br>
+        <b>11.</b> El bot reparador revisa el log — si hay error lo analiza y manda diagnostico al Chat
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">📊 Espacio "reporte" — cada 15 min</div>
+        <div style="font-size:13px;color:#444;line-height:1.6">
+          Resumen de indicadores con total de remisiones, etiquetas y sin asignar.<br><br>
+          Resumen de vencidas con jefes y vendedores afectados.<br><br>
+          <span class="badge ok">10 AM</span> Mensaje de apertura con desglose de ayer vs hoy<br><br>
+          <span class="badge err">Error</span> Si algo falla, el bot reparador manda el diagnostico aqui
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">👔 Espacio "jefes" — cada 30 min</div>
+        <div style="font-size:13px;color:#444;line-height:1.6">
+          4 mensajes en orden: Planta Baja → 1er Piso → 2° Piso → 3er Piso<br><br>
+          Cada mensaje incluye todos los jefes del piso con sus remisiones separadas en:<br>
+          <span class="chip">⏰ En tiempo</span>
+          <span class="chip">🔴 Vencidas +20min</span>
+          <span class="chip">📅 De ayer</span><br><br>
+          <span class="badge pink">9:30 PM</span> Mensaje de cierre con pendientes al cierre
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔧 Bot reparador</div>
+      <div style="font-size:13px;color:#444;line-height:1.6">
+        Corre cada 15 minutos en paralelo al bot principal. Detecta errores en el log de los ultimos 20 minutos, analiza la causa (timeout, red, credenciales, Chromium, etc.) y manda un diagnostico completo al espacio "reporte" con causa y solucion. Si el error es recuperable, reintenta el bot automaticamente.
+      </div>
+    </div>
+  </div>
+
+  <!-- MENSAJES -->
+  <div id="tab-mensajes" class="section" style="margin-top:1rem">
+    <div class="card">
+      <div class="card-title">🌅 Apertura — 10:00 AM (espacio reporte)</div>
+      <div class="msg-box">🌅 Buenos dias
+
+Iniciamos el dia de hoy con *189* clientes en espera de sus articulos.
+Jefes, contamos con su apoyo para trabajar lo antes posible las remisiones de ayer.
+
+📊 Desglose:
+🔴 Mercancia en Espera: *173*
+  📅 De ayer: *45* | De hoy: *128*
+🏷️ Etiquetas Generadas: *16*
+  📅 De ayer: *8* | De hoy: *8*
+
+⚠️ Jefes con pendientes de ayer:
+  👨‍💼 JEFE JOSE JACOB — *8* pendientes
+    📍 Seccion 201 Deportes | Seccion 205 Ropa
+  👩‍💼 JEFA BRENDA BRIONES — *5* pendientes
+    📍 Seccion 466 Ninas
+
+_Liverpool Bot 456 — 22/04/2026 10:00_</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📊 Indicadores — cada 15 min (espacio reporte)</div>
+      <div class="msg-box">📊 Indicadores Liverpool 456
+Actualizacion: 22/04/2026 10:30
+Periodo: 21/04/2026 -> 22/04/2026
+
+Mercancia en Espera: *173*
+Etiquetas Generadas: *16*
+Sin Asignar: *0*
+Total: *928*
+
+Actualizacion completada
+_Tiempos — login:6.2s datos:5.1s descarga:12.3s_</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚠️ Vencidas — cada 15 min (espacio reporte)</div>
+      <div class="msg-box">📊 Resumen remisiones vencidas — 22/04/2026 10:30
+
+🔴 Total vencidas: *22*
+👔 Jefes afectados: *8*
+👤 Vendedores afectados: *15*
+⚠️ Sin vendedor: *3*</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏬 Mensaje por piso — cada 30 min (espacio jefes)</div>
+      <div class="msg-box">〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+🏬 1er PISO
+📅 22/04/2026 10:30
+
+Contamos con clientes en espera, favor de apoyarnos a atender
+los articulos dando prioridad a HD0D, HD1D, CC0D, CC1D y C&C Misma Tienda.
+
+👨‍💼 JEFE JOSE JACOB ALVARADO
+  📦 HD0D: 3 | HD1D: 2
+  ⏰ En tiempo:
+    Seccion 201 Deportes — 8 min | *5* remisiones
+  🔴 Vencidas (+20 min):
+    Seccion 205 Ropa — 35 min | *3* remisiones | ⚠️ Sin vendedor: *1*
+  📅 De ayer sin atender:
+    Seccion 201 Deportes — 2h 10min | *2* remisiones
+  🟢 Total: *10* remisiones
+
+👩‍💼 JEFA BRENDA BRIONES
+  📦 CC0D: 4
+  ⏰ En tiempo:
+    Seccion 466 Ninas — 12 min | *4* remisiones
+  🟢 Total: *4* remisiones
+
+📋 Total 1er PISO: 14 remisiones
+_Liverpool Bot 456 — 22/04/2026 10:30_
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🌙 Cierre — 9:30 PM (espacio jefes)</div>
+      <div class="msg-box">🌙 Buenas noches
+
+Terminamos el dia de hoy con *45* clientes aun en espera de sus articulos.
+
+📊 Resumen de cierre:
+🔴 Mercancia en Espera: *32*
+🏷️ Etiquetas Generadas: *13*
+
+⚠️ Al cierre contamos con:
+  👨‍💼 JEFE JOSE JACOB — *8* pendientes
+    📍 Seccion 201 Deportes — 3h 20min
+    📍 Seccion 205 Ropa — 1h 45min
+  👩‍💼 JEFA BRENDA BRIONES — *5* pendientes
+    📍 Seccion 466 Ninas — 2h 10min
+
+_Liverpool Bot 456 — 22/04/2026 21:30_</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔧 Error analizado — bot reparador (espacio reporte)</div>
+      <div class="msg-box">🔧 Liverpool Bot — Analisis de error
+📅 22/04/2026 10:45
+
+🕐 Hora del error: 2026-04-22 10:44:58,312
+❌ Error detectado:
+  `TimeoutError: 117000ms exceeded while waiting for event download`
+
+🔍 Causa probable:
+  El servidor de Liverpool tardo demasiado en generar el archivo de descarga
+
+💡 Como resolverlo:
+  El bot reintentara la descarga con los 3 navegadores en paralelo.
+  Si persiste, el servidor de Liverpool puede estar saturado — espera 15 min.
+
+📋 Estado: ✅ Reparado automaticamente
+
+El bot fue reiniciado y esta funcionando correctamente.
+
+_Liverpool Bot Reparador 456 — 22/04/2026 10:45_</div>
+    </div>
+  </div>
+
+  <!-- HORARIOS -->
+  <div id="tab-horarios" class="section" style="margin-top:1rem">
+    <div class="card">
+      <div class="card-title">🕐 Programacion del dia</div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">10:00 AM — Apertura</div>
+          <div class="tl-text">Mensaje de buenos dias al espacio "reporte" con total activo, desglose ayer vs hoy y jefes con pendientes de ayer. Solo una vez al dia.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">Cada 15 min — Actualizacion</div>
+          <div class="tl-text">3 navegadores en paralelo descargan el CSV. Actualiza Sheet 1, Sheet 2 y APP 2.0. Manda indicadores y resumen de vencidas al espacio "reporte".</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">Cada 15 min — Bot reparador</div>
+          <div class="tl-text">Revisa el log en busca de errores. Si detecta uno, analiza la causa, reintenta si aplica y manda diagnostico al espacio "reporte".</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">Cada 30 min — Mensajes a jefes</div>
+          <div class="tl-text">4 mensajes al espacio "jefes" ordenados por piso (Planta Baja → 1er → 2° → 3er). Cada uno con todos los jefes del piso, sus tipos de entrega y remisiones separadas en: en tiempo, vencidas y de ayer.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">9:30 PM — Cierre</div>
+          <div class="tl-text">Mensaje de buenas noches al espacio "jefes" con total al cierre, jefes con pendientes y tiempo de espera por seccion.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">Despues de 9:30 PM — Pausa</div>
+          <div class="tl-text">El bot detecta que esta fuera de horario y no hace nada hasta las 10 AM del siguiente dia.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Tipos de entrega prioritarios</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+        <span class="chip" style="background:#fcebeb;color:#a32d2d">HD0D - Mismo dia</span>
+        <span class="chip" style="background:#fcebeb;color:#a32d2d">HD1D - Manana</span>
+        <span class="chip" style="background:#faeeda;color:#854f0b">CC0D - Mismo dia</span>
+        <span class="chip" style="background:#faeeda;color:#854f0b">CC1D - Manana</span>
+        <span class="chip" style="background:#e6f1fb;color:#185fa5">C&C Misma Tienda</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SHEET_ID = "135lsymm5A67_ieYZLaKIfvPpkyqRWbUf9UV-mv3b7js";
+const URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:json&sheet=MONITOR";
+let todos = [], chartT, chartV;
+
+function showTab(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function formatDur(seg) {
+  seg = Math.round(Number(seg) || 0);
+  const m = Math.floor(seg / 60), s = seg % 60;
+  if (m === 0) return s + 's';
+  return m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+}
+
+async function cargar() {
+  try {
+    const r   = await fetch(URL + '&t=' + Date.now());
+    const txt = await r.text();
+    const json = JSON.parse(txt.replace(/^[^{]+/, '').replace(/[^}]+$/, ''));
+    const rows = json.table.rows || [];
+
+    todos = rows.map(row => ({
+      fecha:    row.c[0]?.v || '',
+      hora:     row.c[1]?.v || '',
+      duracion: Number(row.c[2]?.v) || 0,
+      total:    Number(row.c[3]?.v) || 0,
+      vencidas: Number(row.c[4]?.v) || 0,
+      exito:    (row.c[5]?.v || '').toLowerCase() === 'exitosa',
+    }));
+
+    document.getElementById('dot').className = 'dot dot-live';
+    document.getElementById('status-txt').textContent = 'En vivo — actualiza cada 30 seg';
+    document.getElementById('ultima').textContent = 'Ultima actualizacion: ' + new Date().toLocaleTimeString('es-MX');
+    renderAll();
+  } catch(e) {
+    document.getElementById('dot').className = 'dot dot-off';
+    document.getElementById('status-txt').textContent = 'Sin conexion al Sheet Monitor';
+  }
+}
+
+function filtrados() {
+  const n = parseInt(document.getElementById('filtro').value);
+  return todos.slice(-n);
+}
+
+function promedio(arr, key) {
+  const vals = arr.filter(e => e.exito).map(e => e[key]);
+  if (!vals.length) return 0;
+  return Math.round(vals.reduce((a,b) => a+b, 0) / vals.length);
+}
+
+function renderCards(data) {
+  const exitosas = data.filter(e => e.exito).length;
+  const tasa     = data.length ? Math.round(exitosas / data.length * 100) : 0;
+  const ultima   = data[data.length - 1];
+  document.getElementById('cards').innerHTML = `
+    <div class="metric"><div class="lbl">Duracion promedio</div><div class="val">${formatDur(promedio(data,'duracion'))}</div><div class="sub">Ultima: ${ultima ? formatDur(ultima.duracion) : '—'}</div></div>
+    <div class="metric"><div class="lbl">Vencidas promedio</div><div class="val">${promedio(data,'vencidas')}</div><div class="sub">Ultima: ${ultima ? ultima.vencidas : '—'}</div></div>
+    <div class="metric"><div class="lbl">Tasa de exito</div><div class="val">${tasa}%</div><div class="sub">${exitosas} ok / ${data.length - exitosas} errores</div></div>
+    <div class="metric"><div class="lbl">Ejecuciones</div><div class="val">${data.length}</div><div class="sub">de ${todos.length} totales</div></div>
+  `;
+}
+
+function renderTabla(data) {
+  const tbody = document.getElementById('tabla');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;padding:1.5rem">Sin datos aun</td></tr>';
+    return;
+  }
+  tbody.innerHTML = [...data].reverse().map((e, i) => `
+    <tr>
+      <td style="color:#aaa">${data.length - i}</td>
+      <td>${e.fecha}</td><td>${e.hora}</td>
+      <td><div style="display:flex;align-items:center;gap:8px"><span style="min-width:48px">${formatDur(e.duracion)}</span><div class="bar-wrap"><div class="bar" style="width:${Math.min(100, Math.round(e.duracion/180*100))}%"></div></div></div></td>
+      <td>${e.total}</td><td>${e.vencidas}</td>
+      <td><span class="badge ${e.exito ? 'ok' : 'err'}">${e.exito ? 'exitosa' : 'error'}</span></td>
+    </tr>
+  `).join('');
+}
+
+function renderCharts(data) {
+  const labels  = data.map((_,i) => '#'+(i+1));
+  const colors  = data.map(e => e.exito ? '#E8416C' : '#E24B4A');
+  if (chartT) chartT.destroy();
+  if (chartV) chartV.destroy();
+  chartT = new Chart(document.getElementById('cT'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: data.map(e => Math.round(e.duracion)), backgroundColor: colors }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{callback:v=>formatDur(v),font:{size:10}}},x:{ticks:{font:{size:10},autoSkip:true,maxRotation:0}}} }
+  });
+  chartV = new Chart(document.getElementById('cV'), {
+    type: 'line',
+    data: { labels, datasets: [{ data: data.map(e=>e.vencidas), borderColor:'#1D9E75', backgroundColor:'rgba(29,158,117,0.1)', fill:true, tension:0.3, pointRadius:3 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{font:{size:10}}},x:{ticks:{font:{size:10},autoSkip:true,maxRotation:0}}} }
+  });
+}
+
+function renderAll() {
+  const data = filtrados();
+  renderCards(data);
+  renderTabla(data);
+  renderCharts(data);
+}
+
+cargar();
+setInterval(cargar, 30000);
+</script>
+</body>
+</html>
